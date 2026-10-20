@@ -73,6 +73,11 @@
       .to(name, { autoAlpha: 0, duration: 0.3 * k }, 1.5 * k)
       .to(el, { clipPath: "inset(0% 0% 100% 0%)", duration: 0.8 * k, ease: "expo.inOut", onStart: done }, 1.6 * k)
       .add(function () { el.remove(); if (ET.lenis) ET.lenis.start(); });
+    var skipped = false;
+    function skip() { if (skipped) return; skipped = true; tl.timeScale(7); }
+    var sb = el.querySelector("[data-skip]");
+    if (sb) sb.addEventListener("click", skip);
+    ["keydown", "wheel", "touchstart", "pointerdown"].forEach(function (ev) { window.addEventListener(ev, skip, { once: true, passive: true }); });
   }
 
   /* ---------- Héros ---------- */
@@ -145,10 +150,9 @@
       var cards = $$(".principle");
       cards.forEach(function (c, i) {
         if (i === cards.length - 1) return;
-        gsap.to(c, { scale: 0.93, filter: "brightness(0.55)", ease: "none", scrollTrigger: { trigger: cards[i + 1], start: "top bottom", end: "top " + (ET.$(".header").offsetHeight + 24 + (i + 1) * 14) + "px", scrub: true } });
+        gsap.to(c, { scale: 0.95, filter: "brightness(0.62)", ease: "none", scrollTrigger: { trigger: cards[i + 1], start: "top 45%", end: "top " + (ET.$(".header").offsetHeight + 24 + (i + 1) * 14) + "px", scrub: true } });
       });
     });
-    $$(".principle .pyr i.on").forEach(function () {});
   }
 
   /* ---------- Science : courbe de lactate interactive ---------- */
@@ -162,28 +166,32 @@
   ];
   function chart() {
     var svg = $("#lacChart"); if (!svg) return;
-    var ns = "http://www.w3.org/2000/svg", W = 800, H = 440, l = 56, r = 20, t = 22, b = 52;
-    var X = function (x) { return l + x * (W - l - r); }, Y = function (v) { return H - b - (v / 10) * (H - t - b); };
-    var s = '<defs><linearGradient id="lacFill" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ff4b2b" stop-opacity=".28"/><stop offset="1" stop-color="#ff4b2b" stop-opacity="0"/></linearGradient></defs>';
-    var x0 = 0;
-    ZONES.forEach(function (z) { var x1 = Math.min(1, z.to); s += '<rect class="zone-band" x="' + X(x0) + '" y="' + t + '" width="' + (X(x1) - X(x0)) + '" height="' + (H - t - b) + '" fill="' + z.c + '" fill-opacity=".06"/>'; s += '<text class="tick" x="' + ((X(x0) + X(x1)) / 2) + '" y="' + (t + 16) + '" text-anchor="middle" fill="' + z.c + '">Z' + z.z + "</text>"; x0 = x1; });
-    for (var v = 0; v <= 10; v += 2) s += '<line class="grid" x1="' + l + '" x2="' + (W - r) + '" y1="' + Y(v) + '" y2="' + Y(v) + '"/><text class="tick" x="' + (l - 10) + '" y="' + (Y(v) + 4) + '" text-anchor="end">' + v + "</text>";
-    for (var k = 9; k <= 18; k += 1.5) { var xx = (k - 9) / 9; s += '<text class="tick" x="' + X(xx) + '" y="' + (H - b + 20) + '" text-anchor="middle">' + String(k).replace(".", ",") + "</text>"; }
-    s += '<line class="axis" x1="' + l + '" x2="' + (W - r) + '" y1="' + (H - b) + '" y2="' + (H - b) + '"/><line class="axis" x1="' + l + '" x2="' + l + '" y1="' + t + '" y2="' + (H - b) + '"/>';
-    s += '<text class="axis-label" x="' + (W - r) + '" y="' + (H - 8) + '" text-anchor="end">Vitesse (km/h) · coureur fictif</text>';
-    s += '<text class="axis-label" x="' + (l - 44) + '" y="' + (t - 6) + '">mmol/L</text>';
-    var d = "", a = "";
-    for (var i = 0; i <= 100; i++) { var xi = i / 100; d += (i ? "L" : "M") + X(xi).toFixed(1) + " " + Y(L(xi)).toFixed(1); }
-    a = d + " L" + X(1) + " " + Y(0) + " L" + X(0) + " " + Y(0) + " Z";
-    s += '<path class="area" d="' + a + '"/><path class="curve" d="' + d + '"/>';
-    [[0.45, "SL1", "#b8ff3b"], [0.66, "MLSS", "#eef2f5"], [0.72, "SL2", "#ff4b2b"]].forEach(function (m, j) {
-      var mx = X(m[0]), my = Y(L(m[0]));
-      s += '<g class="marker"><line x1="' + mx + '" x2="' + mx + '" y1="' + my + '" y2="' + (H - b) + '" stroke="' + m[2] + '"/><circle cx="' + mx + '" cy="' + my + '" r="5" fill="' + m[2] + '"/><text x="' + (mx + (j === 1 ? -10 : 10)) + '" y="' + (my - 12 - (j === 1 ? 14 : 0)) + '" fill="' + m[2] + '" text-anchor="' + (j === 1 ? "end" : "start") + '">' + m[1] + " · " + L(m[0]).toFixed(1).replace(".", ",") + "</text></g>";
-    });
-    s += '<g class="probe"><line y1="' + t + '" y2="' + (H - b) + '"/><circle r="8"/></g>';
-    svg.insertAdjacentHTML("beforeend", s);
-    var probe = svg.querySelector(".probe"), pl = probe.querySelector("line"), pc = probe.querySelector("circle");
     var range = $("#lacRange"), oI = $("#lacI"), oL = $("#lacL"), oZ = $("#lacZ"), oD = $("#lacD");
+    var X, Y, probe, pl, pc, first = true;
+    function draw() {
+      var W = Math.max(280, Math.round(svg.parentElement.clientWidth - 2)), narrow = W < 520;
+      var H = Math.round(W * (narrow ? 0.72 : 0.55)), l = narrow ? 34 : 50, r = 12, t = 22, b = 44;
+      svg.setAttribute("viewBox", "0 0 " + W + " " + H);
+      X = function (x) { return l + x * (W - l - r); }; Y = function (v) { return H - b - (v / 10) * (H - t - b); };
+      var s = '<desc id="lacChartDesc">Courbe illustrative de la concentration de lactate sanguin selon l’intensité, avec les seuils SL1, MLSS et SL2.</desc><defs><linearGradient id="lacFill" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ff4b2b" stop-opacity=".28"/><stop offset="1" stop-color="#ff4b2b" stop-opacity="0"/></linearGradient></defs>';
+      var x0 = 0;
+      ZONES.forEach(function (z) { var x1 = Math.min(1, z.to); s += '<rect class="zone-band" x="' + X(x0) + '" y="' + t + '" width="' + (X(x1) - X(x0)) + '" height="' + (H - t - b) + '" fill="' + z.c + '" fill-opacity=".06"/><text class="tick" x="' + ((X(x0) + X(x1)) / 2) + '" y="' + (t + 15) + '" text-anchor="middle" fill="' + z.c + '">Z' + z.z + "</text>"; x0 = x1; });
+      for (var v = 0; v <= 10; v += 2) s += '<line class="grid" x1="' + l + '" x2="' + (W - r) + '" y1="' + Y(v) + '" y2="' + Y(v) + '"/><text class="tick" x="' + (l - 8) + '" y="' + (Y(v) + 4) + '" text-anchor="end">' + v + "</text>";
+      for (var k = 9; k <= 18; k += narrow ? 3 : 1.5) s += '<text class="tick" x="' + X((k - 9) / 9) + '" y="' + (H - b + 18) + '" text-anchor="middle">' + String(k).replace(".", ",") + "</text>";
+      s += '<line class="axis" x1="' + l + '" x2="' + (W - r) + '" y1="' + (H - b) + '" y2="' + (H - b) + '"/><line class="axis" x1="' + l + '" x2="' + l + '" y1="' + t + '" y2="' + (H - b) + '"/>';
+      s += '<text class="axis-label" x="' + (W - r) + '" y="' + (H - 6) + '" text-anchor="end">Vitesse (km/h)' + (narrow ? "" : " · coureur fictif") + '</text><text class="axis-label" x="' + 2 + '" y="' + (t - 8) + '">mmol/L</text>';
+      var d = "";
+      for (var i = 0; i <= 100; i++) { var xi = i / 100; d += (i ? "L" : "M") + X(xi).toFixed(1) + " " + Y(L(xi)).toFixed(1); }
+      s += '<path class="area" d="' + d + " L" + X(1) + " " + Y(0) + " L" + X(0) + " " + Y(0) + ' Z"/><path class="curve" d="' + d + '"/>';
+      [[0.45, "SL1", "#b8ff3b"], [0.66, "MLSS", "#eef2f5"], [0.72, "SL2", "#ff4b2b"]].forEach(function (m, j) {
+        var mx = X(m[0]), my = Y(L(m[0])), lab = narrow ? m[1] : m[1] + " · " + L(m[0]).toFixed(1).replace(".", ",");
+        s += '<g class="marker"><line x1="' + mx + '" x2="' + mx + '" y1="' + my + '" y2="' + (H - b) + '" stroke="' + m[2] + '"/><circle cx="' + mx + '" cy="' + my + '" r="5" fill="' + m[2] + '"/><text x="' + (mx + (j === 1 ? -10 : 10)) + '" y="' + (my - 12 - (j === 1 ? 16 : 0)) + '" fill="' + m[2] + '" text-anchor="' + (j === 1 ? "end" : "start") + '">' + lab + "</text></g>";
+      });
+      s += '<g class="probe"><line y1="' + t + '" y2="' + (H - b) + '"/><circle r="8"/></g>';
+      svg.innerHTML = s;
+      probe = svg.querySelector(".probe"); pl = probe.querySelector("line"); pc = probe.querySelector("circle");
+      upd();
+    }
     function upd() {
       var x = range.value / 100, v = L(x), z = ZONES.filter(function (q) { return x < q.to; })[0];
       pl.setAttribute("x1", X(x)); pl.setAttribute("x2", X(x)); pc.setAttribute("cx", X(x)); pc.setAttribute("cy", Y(v));
@@ -193,12 +201,14 @@
       oD.textContent = z.t;
     }
     range.addEventListener("input", upd);
-    upd();
+    draw();
+    var lastW = svg.parentElement.clientWidth, rt;
+    window.addEventListener("resize", function () { clearTimeout(rt); rt = setTimeout(function () { if (Math.abs(svg.parentElement.clientWidth - lastW) > 20) { lastW = svg.parentElement.clientWidth; draw(); } }, 150); });
     if (G && !ET.calm) {
       var cv = svg.querySelector(".curve"), len = cv.getTotalLength();
       var o = { v: 0 };
       gsap.timeline({ scrollTrigger: { trigger: svg, start: "top 75%", once: true } })
-        .fromTo(cv, { strokeDasharray: len, strokeDashoffset: len }, { strokeDashoffset: 0, duration: 1.6, ease: "power2.inOut" })
+        .fromTo(cv, { strokeDasharray: len, strokeDashoffset: len }, { strokeDashoffset: 0, duration: 1.6, ease: "power2.inOut", clearProps: "strokeDasharray,strokeDashoffset" })
         .from(svg.querySelector(".area"), { opacity: 0, duration: 0.8 }, 0.6)
         .from(svg.querySelectorAll(".marker"), { opacity: 0, y: 10, stagger: 0.15, duration: 0.5 }, 1)
         .fromTo(o, { v: 5 }, { v: 38, duration: 1.4, ease: "power2.inOut", onUpdate: function () { range.value = o.v; upd(); } }, 0.4);
@@ -221,15 +231,25 @@
   var CONS = { reunion: { "1-2": "Réunion" }, deplacement: { "3-1": "Déplacement", "3-2": "Déplacement" }, famille: { "5-0": "Enfants" } };
   function week() {
     var grid = $("#week"); if (!grid) return;
-    var h = '<div></div>' + DAYS.map(function (d) { return '<div class="week__day">' + d + "</div>"; }).join("");
-    SLOTS.forEach(function (sl, s) {
-      h += '<div class="week__slot-label">' + sl + "</div>";
-      for (var d = 0; d < 7; d++) h += '<div class="week__cell" data-cell="' + d + "-" + s + '"></div>';
+    var h = '<div class="week__corner"></div>' + DAYS.map(function (d, i) { return '<div class="week__day" data-d="' + i + '">' + d + "</div>"; }).join("");
+    SLOTS.forEach(function (sl, si) {
+      h += '<div class="week__slot-label" data-s="' + si + '">' + sl + "</div>";
+      for (var d = 0; d < 7; d++) h += '<div class="week__cell" data-cell="' + d + "-" + si + '" data-d="' + d + '" data-s="' + si + '"></div>';
     });
     grid.innerHTML = h;
+    var mq = window.matchMedia("(max-width: 640px)");
+    function layout() {
+      var tr = mq.matches;
+      $(".week__corner", grid).style.cssText = "grid-column:1;grid-row:1";
+      $$(".week__day", grid).forEach(function (e) { var d = +e.getAttribute("data-d"); e.style.gridColumn = tr ? 1 : d + 2; e.style.gridRow = tr ? d + 2 : 1; });
+      $$(".week__slot-label", grid).forEach(function (e) { var si = +e.getAttribute("data-s"); e.style.gridColumn = tr ? si + 2 : 1; e.style.gridRow = tr ? 1 : si + 2; });
+      $$(".week__cell", grid).forEach(function (e) { var d = +e.getAttribute("data-d"), si = +e.getAttribute("data-s"); e.style.gridColumn = tr ? si + 2 : d + 2; e.style.gridRow = tr ? d + 2 : si + 2; });
+    }
+    layout();
+    if (mq.addEventListener) mq.addEventListener("change", layout); else if (mq.addListener) mq.addListener(layout);
     var nodes = {};
-    SESS.forEach(function (x) { var el = document.createElement("div"); el.className = "sess"; el.setAttribute("data-type", x.type); el.innerHTML = "<i></i>" + x.label; nodes[x.id] = el; });
-    var active = {}, prev = {};
+    SESS.forEach(function (x) { var el = document.createElement("div"); el.className = "sess"; el.setAttribute("data-type", x.type); el.innerHTML = '<i aria-hidden="true"></i>' + x.label; nodes[x.id] = el; });
+    var active = {}, base = {};
     var log = $("#weekLog");
     function place(first) {
       var blocked = {}, k;
@@ -246,17 +266,19 @@
       SESS.forEach(function (x) {
         var target = null;
         for (var i = 0; i < x.cells.length; i++) { var c = x.cells[i]; if (!blocked[c] && !used[c]) { target = c; break; } }
-        if (!target) { nodes[x.id].remove(); moves.push(x.label + " reportée à la semaine suivante"); return; }
+        if (!target) { nodes[x.id].remove(); moves.push(x.label + " : reportée à la semaine suivante"); return; }
         used[target] = true;
+        var tb = target.split("-");
+        nodes[x.id].setAttribute("aria-label", x.label + ", " + DAYS_L[tb[0]] + " " + SLOTS_L[tb[1]]);
         $('[data-cell="' + target + '"]', grid).appendChild(nodes[x.id]);
-        if (prev[x.id] && prev[x.id] !== target) {
-          var a = prev[x.id].split("-"), bb = target.split("-");
-          moves.push(x.label + " : " + DAYS_L[a[0]] + " " + SLOTS_L[a[1]] + " → " + DAYS_L[bb[0]] + " " + SLOTS_L[bb[1]]);
+        if (first) base[x.id] = target;
+        else if (base[x.id] !== target) {
+          var a = base[x.id].split("-");
+          moves.push(x.label + " : " + DAYS_L[a[0]] + " " + SLOTS_L[a[1]] + " → " + DAYS_L[tb[0]] + " " + SLOTS_L[tb[1]]);
         }
-        prev[x.id] = target;
       });
       if (state) Flip.from(state, { duration: 0.8, ease: "power3.inOut", stagger: 0.04, absolute: true, scale: true });
-      if (!first) log.textContent = moves.length ? moves.join(" · ") : "Aucun changement nécessaire : le plan tient.";
+      if (!first) log.textContent = moves.length ? moves.length + (moves.length > 1 ? " séances déplacées. " : " séance déplacée. ") + moves.join(" · ") : "Plan de départ : aucune séance à déplacer.";
     }
     place(true);
     $$("[data-constraint]").forEach(function (b) {
@@ -279,7 +301,7 @@
         onEnter: function () {
           els.forEach(function (el, i) {
             var node = el.firstChild; if (!node || node.nodeType !== 3) return;
-            scramble(node, el.getAttribute("data-split-val"), 1.3, i * 0.12);
+            scramble(node, el.getAttribute("data-split-val"), 0.9, i * 0.08);
           });
           gsap.from(box.children, { y: 20, autoAlpha: 0, duration: 0.8, stagger: 0.08, ease: "expo.out" });
         }
@@ -312,8 +334,8 @@
     var passes = all.filter(function (s) { return s.past; }).sort(function (a, b) { return a.debut < b.debut ? 1 : -1; });
     $('[data-filter="avenir"] .n').textContent = avenir.length;
     $('[data-filter="passes"] .n').textContent = passes.length;
-    function card(s) {
-      var h = '<article class="stage' + (s.past ? " is-past" : "") + '" data-tilt>';
+    function card(s, feature) {
+      var h = '<article class="stage' + (s.past ? " is-past" : "") + (feature ? " stage--feature" : "") + '"' + (feature ? "" : " data-tilt") + ">";
       h += '<div class="stage__badge">' + (s.past ? '<span class="chip">Passé</span>' : s.surMesure ? '<span class="chip chip--live">Toute l’année</span>' : '<span class="chip chip--live">À venir</span>') + '<span class="chip">' + s.places + (s.places > 2 ? " places max" : " personnes max") + "</span></div>";
       h += '<figure class="media' + (s.imageReelle ? " media--real" : "") + '">' + imgTag(s.image, s.imageAlt || "", "(max-width: 860px) 92vw, 46vw") + "</figure>";
       h += '<div class="stage__body"><div class="stage__when"><span>' + range(s) + '</span><span class="where">' + s.lieu + " · " + s.region + "</span></div>";
@@ -344,19 +366,36 @@
     }
     function show(which) {
       var arr = which === "passes" ? passes : avenir;
-      list.innerHTML = arr.map(card).join("");
+      list.innerHTML = arr.map(function (s, i) { return card(s, which === "avenir" && i === 0 && !!s.debut); }).join("");
       list.setAttribute("aria-labelledby", "tab-" + which);
       $$("[data-countdown]", list).forEach(ET.countdown);
       ET.bindTilt(list);
       if (G && !ET.calm) gsap.from(list.children, { y: 40, autoAlpha: 0, duration: 0.9, stagger: 0.1, ease: "expo.out", scrollTrigger: { trigger: list, start: "top 85%", once: true } });
       if (G) ScrollTrigger.refresh();
     }
-    $$(".tabs [data-filter]").forEach(function (b) {
+    var tabs = $$(".tabs [data-filter]");
+    tabs.forEach(function (b, i) {
       b.addEventListener("click", function () {
-        $$(".tabs [data-filter]").forEach(function (x) { x.setAttribute("aria-selected", x === b ? "true" : "false"); });
+        tabs.forEach(function (x) { x.setAttribute("aria-selected", x === b ? "true" : "false"); x.tabIndex = x === b ? 0 : -1; });
         show(b.getAttribute("data-filter"));
       });
+      b.addEventListener("keydown", function (e) {
+        if (e.key !== "ArrowRight" && e.key !== "ArrowLeft") return;
+        e.preventDefault();
+        var n = tabs[(i + (e.key === "ArrowRight" ? 1 : tabs.length - 1)) % tabs.length];
+        n.focus(); n.click();
+      });
     });
+    var next = avenir.filter(function (x) { return x.debut; })[0], nx = $("#nextStage");
+    if (next && nx) {
+      var cur = null;
+      (next.tarifs || []).forEach(function (t) { var f = t.de ? d0(t.de) : null, to = t.jusqua ? d0(t.jusqua) : null; if ((!f || f <= TODAY) && (!to || to >= TODAY)) cur = t; });
+      var w = (window.ET_IMG && window.ET_IMG[next.image]) || [640];
+      nx.innerHTML = '<span class="next-stage__img"><img src="assets/img/' + next.image + "-" + w[0] + '.webp" alt=""></span><span class="next-stage__txt"><span>Prochain stage</span><strong>' + next.titre + "</strong><em>" + range(next) + " · " + next.lieu + "</em></span>" +
+        '<span class="next-stage__price">' + eur(cur ? cur.prix : next.prix) + "<small>" + (cur && cur.jusqua ? "tarif " + cur.label.toLowerCase() + " · jusqu’au " + d0(cur.jusqua).toLocaleDateString("fr-FR", { day: "numeric", month: "short" }) : "par athlète") + "</small></span>";
+      nx.hidden = false;
+      nx.setAttribute("aria-label", "Prochain stage : " + next.titre + ", " + range(next) + ", " + next.lieu);
+    }
     show("avenir");
     var dlg = $("#stageSheet"), body = $("#sheetBody");
     list.addEventListener("click", function (e) {
@@ -381,15 +420,15 @@
     var P = function (lat, lon) { return [(lon - lon0) * cosL * k + 20, (lat0 - lat) * k + 20]; };
     var base = { n: "Voiron", lat: 45.364, lon: 5.590 };
     var cities = [
-      { n: "Lyon · Villeurbanne · Vénissieux", lat: 45.75, lon: 4.85, a: "end", dx: -12, dy: -10 },
+      { n: "Lyon · Villeurbanne · Vénissieux", sn: "Lyon", lat: 45.75, lon: 4.85, a: "end", dx: -12, dy: -10 },
       { n: "Grenoble", lat: 45.188, lon: 5.724, dx: 12, dy: 18 },
       { n: "Chambéry", lat: 45.564, lon: 5.918, dx: 12, dy: 4 },
       { n: "Annecy", lat: 45.899, lon: 6.129, dx: 12, dy: 4 },
       { n: "Valence", lat: 44.933, lon: 4.892, a: "end", dx: -12, dy: 4 },
       { n: "Gap", lat: 44.559, lon: 6.079, a: "end", dx: -12, dy: 4 },
       { n: "Embrun", lat: 44.565, lon: 6.495, dx: 12, dy: 18 },
-      { n: "Briançon · stage juillet 2027", lat: 44.899, lon: 6.643, stage: true, a: "end", dx: -12, dy: -12 },
-      { n: "Lac de Naussac · stage avril 2027", lat: 44.735, lon: 3.83, stage: true, dx: 12, dy: 22 }
+      { n: "Briançon · stage juillet 2027", sn: "Briançon", lat: 44.899, lon: 6.643, stage: true, a: "end", dx: -12, dy: -14 },
+      { n: "Lac de Naussac · stage avril 2027", sn: "Naussac", lat: 44.735, lon: 3.83, stage: true, dx: 12, dy: 30 }
     ];
     var b = P(base.lat, base.lon), s = "";
     [50, 100].forEach(function (km) { var r = km / 111 * k; s += '<circle class="radius" cx="' + b[0] + '" cy="' + b[1] + '" r="' + r + '"/><text x="' + (b[0] + r * 0.71 + 6) + '" y="' + (b[1] - r * 0.71) + '" fill="rgba(255,75,43,.7)" font-family="JetBrains Mono, monospace" font-size="11">' + km + " km</text>"; });
@@ -399,9 +438,11 @@
     });
     cities.forEach(function (c) {
       var p = P(c.lat, c.lon);
-      s += '<g class="city' + (c.stage ? " is-stage" : "") + '"><circle cx="' + p[0] + '" cy="' + p[1] + '" r="5"/><text x="' + (p[0] + (c.dx || 10)) + '" y="' + (p[1] + (c.dy || 4)) + '" text-anchor="' + (c.a || "start") + '">' + c.n + "</text></g>";
+      var narrow = svg.getBoundingClientRect().width < 520 && svg.getBoundingClientRect().width > 0;
+      if (narrow && (c.n === "Valence" || c.n === "Gap")) { c.a = "start"; c.dx = 12; }
+      s += '<g class="city' + (c.stage ? " is-stage" : "") + '"><circle cx="' + p[0] + '" cy="' + p[1] + '" r="' + (narrow ? 8 : 5) + '"/><text x="' + (p[0] + (c.dx || 10)) + '" y="' + (p[1] + (c.dy || 4) * (narrow ? 1.6 : 1)) + '" text-anchor="' + (c.a || "start") + '">' + (narrow && c.sn ? c.sn : c.n) + "</text></g>";
     });
-    s += '<circle class="ping" cx="' + b[0] + '" cy="' + b[1] + '" r="8"/><g class="city is-main"><circle cx="' + b[0] + '" cy="' + b[1] + '" r="8"/><text x="' + (b[0] - 14) + '" y="' + (b[1] + 5) + '" text-anchor="end" style="font-weight:700;font-size:15px">Voiron</text></g>';
+    s += '<circle class="ping" cx="' + b[0] + '" cy="' + b[1] + '" r="8"/><g class="city is-main"><circle cx="' + b[0] + '" cy="' + b[1] + '" r="8"/><text x="' + (b[0] - 14) + '" y="' + (b[1] + 5) + '" text-anchor="end" class="main">Voiron</text></g>';
     svg.innerHTML = s;
     if (!G || ET.calm) return;
     var links = $$(".link", svg);

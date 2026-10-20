@@ -168,6 +168,7 @@
     var xr = gsap.quickTo(ring, "x", { duration: 0.45, ease: "power3" }), yr = gsap.quickTo(ring, "y", { duration: 0.45, ease: "power3" });
     var xl = gsap.quickTo(lab, "x", { duration: 0.45, ease: "power3" }), yl = gsap.quickTo(lab, "y", { duration: 0.45, ease: "power3" });
     window.addEventListener("pointermove", function (e) {
+      cursor.classList.add("is-active");
       xd(e.clientX); yd(e.clientY); xr(e.clientX); yr(e.clientY); xl(e.clientX); yl(e.clientY);
     }, { passive: true });
     document.addEventListener("pointerover", function (e) {
@@ -175,8 +176,7 @@
       cursor.classList.toggle("is-hover", !!t);
       lab.textContent = t && t.getAttribute("data-cursor") ? t.getAttribute("data-cursor") : "";
     });
-    document.addEventListener("pointerleave", function () { gsap.to(cursor, { autoAlpha: 0, duration: 0.2 }); });
-    document.addEventListener("pointerenter", function () { gsap.to(cursor, { autoAlpha: 1, duration: 0.2 }); });
+    document.documentElement.addEventListener("mouseleave", function () { cursor.classList.remove("is-active"); });
   }
 
   /* ---------- Boutons magnétiques et cartes inclinées ---------- */
@@ -254,6 +254,59 @@
     if (heroEl) ScrollTrigger.create({ trigger: heroEl, start: "bottom 70%", onEnter: function () { hud.classList.add("is-on"); }, onLeaveBack: function () { hud.classList.remove("is-on"); } });
     else hud.classList.add("is-on");
   }
+
+  /* ---------- Rail de progression (fil rouge) ---------- */
+  ET.railLactate = (function () {
+    var peak = 0.9 + 0.333 * (Math.exp(3.24 * 0.9) - 1);
+    function v(t) {
+      if (t <= 0.85) { var x = t / 0.85 * 0.9; return 0.9 + 0.333 * (Math.exp(3.24 * x) - 1); }
+      var k = Math.min(1, (t - 0.85) / 0.15); k = k * k * (3 - 2 * k);
+      return peak - (peak - 1.4) * k;
+    }
+    function cross(val) { for (var i = 0; i <= 400; i++) { if (v(i / 400) >= val) return i / 400; } return 1; }
+    return {
+      x: function (t) { return (v(t) - 0.9) / (peak - 0.9); },
+      v: function (t) { return v(t).toFixed(1).replace(".", ","); },
+      marks: [{ t: cross(2), l: "SL1" }, { t: cross(4), l: "SL2" }, { t: 0.93, l: "Récup" }]
+    };
+  })();
+  ET.initRail = function () {
+    var rail = ET.$(".rail");
+    if (!rail || !hasGSAP) return;
+    var svg = rail.querySelector(".rail__svg"), val = rail.querySelector(".rail__val strong");
+    var R = rail.getAttribute("data-mode") === "alt" && ET.railAlt ? ET.railAlt : ET.railLactate;
+    var prog, dot, marks = [], len = 1, H = 0;
+    function draw() {
+      var W = 30; H = svg.clientHeight || 300;
+      svg.setAttribute("viewBox", "0 0 " + W + " " + H);
+      var d = "";
+      for (var i = 0; i <= 80; i++) { var t = i / 80; d += (i ? "L" : "M") + (4 + R.x(t) * 22).toFixed(1) + " " + (t * H).toFixed(1); }
+      var h = '<path class="base" d="' + d + '"/><path class="prog" d="' + d + '"/>';
+      R.marks.forEach(function (m) {
+        var y = (m.t * H).toFixed(1);
+        h += '<g class="mk" data-t="' + m.t + '"><line x1="2" x2="28" y1="' + y + '" y2="' + y + '"/><text transform="translate(26 ' + (m.t * H - 4).toFixed(1) + ') rotate(-90)" text-anchor="start">' + m.l + "</text></g>";
+      });
+      h += '<circle class="dot" r="4" fill="#ff4b2b" stroke="#0b1016" stroke-width="2"/>';
+      svg.innerHTML = h;
+      prog = svg.querySelector(".prog"); dot = svg.querySelector(".dot"); marks = ET.$$(".mk", svg);
+      len = prog.getTotalLength(); prog.style.strokeDasharray = len;
+      upd();
+    }
+    function upd() {
+      var y = ET.lenis ? ET.lenis.scroll : window.scrollY, max = Math.max(1, document.documentElement.scrollHeight - window.innerHeight);
+      var p = Math.min(1, Math.max(0, y / max));
+      prog.style.strokeDashoffset = len * (1 - p);
+      dot.setAttribute("cx", (4 + R.x(p) * 22).toFixed(1)); dot.setAttribute("cy", (p * H).toFixed(1));
+      val.textContent = R.v(p);
+      marks.forEach(function (m) { m.classList.toggle("on", p >= +m.getAttribute("data-t")); });
+    }
+    draw();
+    if (ET.lenis) ET.lenis.on("scroll", upd); else window.addEventListener("scroll", upd, { passive: true });
+    var rt; window.addEventListener("resize", function () { clearTimeout(rt); rt = setTimeout(draw, 150); });
+    var heroEl = ET.$(".hero, .phero");
+    if (heroEl) ScrollTrigger.create({ trigger: heroEl, start: "bottom 70%", onEnter: function () { rail.classList.add("is-on"); }, onLeaveBack: function () { rail.classList.remove("is-on"); } });
+    else rail.classList.add("is-on");
+  };
 
   /* ---------- Zones de fond (Z1 → Z5) ---------- */
   var ZB = { 1: "#0b1016", 2: "#0a1a24", 3: "#0e202c", 4: "#1f151b", 5: "#2b100d" };
@@ -340,6 +393,7 @@
     if (ET._ready) return;
     ET._ready = true;
     ET._q.forEach(function (fn) { try { fn(); } catch (err) { console.error(err); } });
+    try { ET.initRail(); } catch (err) { console.error(err); }
     ET.splitHeads(document);
     ET.reveal(document);
     if (hasGSAP) ScrollTrigger.refresh();
