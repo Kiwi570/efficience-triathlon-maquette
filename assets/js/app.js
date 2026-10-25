@@ -63,12 +63,14 @@
     if (!a) return;
     var id = a.getAttribute("href");
     if (id.length < 2) return;
-    var t = document.querySelector(id);
+    var t = null;
+    try { t = document.getElementById(decodeURIComponent(id.slice(1))); } catch (er) { /* ancre invalide */ }
     if (!t) return;
     e.preventDefault();
     closeMenu();
     ET.scrollTo(t);
-    if (t.hasAttribute("tabindex") || /^(A|BUTTON|INPUT)$/.test(t.tagName)) t.focus({ preventScroll: true });
+    if (!t.hasAttribute("tabindex") && !/^(A|BUTTON|INPUT|SELECT|TEXTAREA)$/.test(t.tagName)) t.setAttribute("tabindex", "-1");
+    t.focus({ preventScroll: true });
   });
 
   /* ---------- En-tête ---------- */
@@ -90,18 +92,31 @@
   function closeMenu() {
     if (!document.body.classList.contains("menu-open")) return;
     document.body.classList.remove("menu-open");
+    horsMenu(false);
     if (menuBtn) menuBtn.setAttribute("aria-expanded", "false");
     if (ET.lenis) ET.lenis.start();
   }
+  function horsMenu(on) { ET.$$("body > main, body > footer, body > .actionbar, body > .skip").forEach(function (el) { el.inert = on; }); }
   if (menuBtn) {
     menuBtn.addEventListener("click", function () {
       var open = !document.body.classList.contains("menu-open");
-      document.body.classList.toggle("menu-open", open);
-      menuBtn.setAttribute("aria-expanded", open ? "true" : "false");
-      if (ET.lenis) open ? ET.lenis.stop() : ET.lenis.start();
-      if (open && hasGSAP && !ET.calm) gsap.from(".mnav li", { y: 24, autoAlpha: 0, stagger: 0.05, duration: 0.6, ease: "expo.out" });
+      if (!open) { closeMenu(); return; }
+      document.body.classList.add("menu-open");
+      horsMenu(true);
+      menuBtn.setAttribute("aria-expanded", "true");
+      if (ET.lenis) ET.lenis.stop();
+      if (hasGSAP && !ET.calm) gsap.from(".mnav li", { y: 24, opacity: 0, stagger: 0.05, duration: 0.6, ease: "expo.out" }); // opacité seule : les liens restent focalisables
+      var l = ET.$(".mnav a"); if (l) l.focus();
     });
-    document.addEventListener("keydown", function (e) { if (e.key === "Escape") closeMenu(); });
+    document.addEventListener("keydown", function (e) {
+      if (!document.body.classList.contains("menu-open")) return;
+      if (e.key === "Escape") { closeMenu(); menuBtn.focus(); return; }
+      if (e.key !== "Tab") return;
+      var f = [menuBtn].concat(ET.$$(".mnav a[href], .mnav button:not([disabled])"));
+      var i = f.indexOf(document.activeElement);
+      if (e.shiftKey && i <= 0) { e.preventDefault(); f[f.length - 1].focus(); }
+      else if (!e.shiftKey && i === f.length - 1) { e.preventDefault(); f[0].focus(); }
+    });
   }
   ET.closeMenu = closeMenu;
 
@@ -378,13 +393,20 @@
     if (!a || a.target === "_blank" || a.hasAttribute("download")) return;
     var href = a.getAttribute("href");
     if (!/\.html(#.*)?$/.test(href) || /^https?:/.test(href)) return;
+    var u = new URL(a.href), norm = function (p) { return p.replace(/\/index(\.html)?$/, "/").replace(/\.html$/, ""); };
+    if (norm(u.pathname) === norm(window.location.pathname)) {
+      e.preventDefault(); closeMenu();
+      var t = null; try { t = u.hash.length > 1 ? document.getElementById(decodeURIComponent(u.hash.slice(1))) : null; } catch (er) { /* ancre invalide */ }
+      ET.scrollTo(t || document.body);
+      return;
+    }
     if (ET.calm || !hasGSAP || !sweep) return;
     e.preventDefault();
     ET.store.sset("et-sweep", "1");
     gsap.set(bands, { transformOrigin: "50% 100%" });
     gsap.to(bands, { scaleY: 1, duration: 0.55, stagger: 0.06, ease: "power3.inOut", onComplete: function () { window.location.href = href; } });
   });
-  window.addEventListener("pageshow", function (e) { if (e.persisted && hasGSAP) gsap.set(bands, { scaleY: 0 }); });
+  window.addEventListener("pageshow", function (e) { if (e.persisted) { if (hasGSAP) gsap.set(bands, { scaleY: 0 }); closeMenu(); } });
 
   /* ---------- Initialisation après chargement des polices ---------- */
   ET._q = ET._q || [];

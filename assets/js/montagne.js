@@ -132,9 +132,10 @@
     if (!G || ET.calm) return;
     mm.add("(min-width: 901px)", function () {
       var wrap = $("#galWrap"), g = $("#gallery");
+      wrap.classList.add("is-h");
       var dist = function () { return Math.max(0, g.scrollWidth - window.innerWidth); };
       gsap.to(g, { x: function () { return -dist(); }, ease: "none", scrollTrigger: { trigger: wrap, start: "top top+=" + (ET.$(".header").offsetHeight + 20), end: function () { return "+=" + dist(); }, pin: true, scrub: 0.8, invalidateOnRefresh: true } });
-      return function () { gsap.set(g, { x: 0 }); };
+      return function () { gsap.set(g, { x: 0 }); wrap.classList.remove("is-h"); };
     });
   }
 
@@ -158,7 +159,7 @@
         return;
       }
       msg.hidden = false; msg.style.boxShadow = "";
-      msg.textContent = "Démonstration : rien n’a été envoyé, " + p + ". Sur le site final, ce formulaire transmettra la pré-inscription au coach. En attendant, utilise le formulaire officiel ou appelle le 06 24 31 31 08.";
+      msg.textContent = "Démonstration : rien n’a été envoyé, " + p + ". Sur le site final, ce formulaire transmettra la pré-inscription au coach. En attendant, utilise le formulaire officiel ou appelle le 06 24 31 31 08.";
     });
   }
 

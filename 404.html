@@ -2,10 +2,11 @@
 <html lang="fr">
 <head>
 <meta charset="utf-8">
+<base href="/">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Page introuvable · Efficience Triathlon Training</title>
-<meta name="claude:viewport-fit-sides" content="cover">
 <meta name="description" content="Cette page n’existe pas ou a été déplacée.">
+<meta name="robots" content="noindex, nofollow">
 <meta name="theme-color" content="#0b1016">
 <meta property="og:type" content="website">
 <meta property="og:locale" content="fr_FR">
@@ -16,22 +17,22 @@
 <meta name="twitter:card" content="summary_large_image">
 <link rel="icon" type="image/png" href="assets/img/favicon.png">
 <link rel="apple-touch-icon" href="assets/img/favicon-180.png">
-<link rel="preload" href="assets/fonts/archivo-var.woff" as="font" type="font/woff" crossorigin>
-<link rel="preload" href="assets/fonts/jetbrains-mono-var.woff" as="font" type="font/woff" crossorigin>
-<link rel="stylesheet" href="assets/css/main.css">
-<script>(function(){var s=null;try{s=localStorage.getItem("et-calm")}catch(e){}var r=window.matchMedia("(prefers-reduced-motion: reduce)").matches;var c=document.documentElement.classList;if(s==="1"||(s===null&&r))c.add("calm");else c.add("motion-ok");})();</script>
+<link rel="preload" href="assets/fonts/archivo-var.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="assets/fonts/jetbrains-mono-var.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="assets/css/main.css?v=2">
+<script>(function(){var s=null;try{s=localStorage.getItem("et-calm")}catch(e){}var r=window.matchMedia("(prefers-reduced-motion: reduce)").matches;var c=document.documentElement.classList;if(s==="1"||(s===null&&r))c.add("calm");else{c.add("motion-ok");c.add("intro-on");setTimeout(function(){if(!window.__etIntro)c.remove("intro-on")},4500)}})();</script>
 </head>
-<body data-page="legal">
+<body data-page="introuvable">
 <a class="skip" href="#contenu">Aller au contenu</a>
 <header class="header">
   <div class="header__in">
-    <a class="brand" href="index.html" aria-label="Efficience Triathlon Training, accueil">
+    <a class="brand" href="index.html">
       <span class="brand__chip"><img src="assets/img/logo-et2-marque-160.webp" width="160" height="96" alt=""></span>
       <span class="brand__name">Efficience<br>Triathlon Training<small>Coach Guillaume Deloge</small></span>
     </a>
     <nav class="nav" aria-label="Navigation principale">
       <ul class="nav__links"><li><a href="index.html#methode">Méthode</a></li><li><a href="test-effort.html">Test d’effort</a></li><li><a href="index.html#coaching">Coaching</a></li><li><a href="index.html#stages">Stages</a></li><li><a href="index.html#coach">Le coach</a></li></ul>
-      <span class="nav__tel" title="Téléphone">06 24 31 31 08</span>
+      <a class="nav__tel" href="tel:+33624313108" title="Téléphone">06 24 31 31 08</a>
       <button class="calm-toggle" type="button" data-calm-toggle aria-pressed="false"><span class="dot" aria-hidden="true"></span>Mode calme</button>
       <a class="btn" href="index.html#rdv" data-magnetic=".25">Premier échange</a>
       <span class="chip zone-pill mono" aria-hidden="true">Z1</span>
@@ -39,10 +40,10 @@
     </nav>
   </div>
 </header>
-<div class="mnav" id="mnav">
+<div class="mnav" id="mnav" data-lenis-prevent>
   <ol><li><a href="index.html#methode"><span class="mono">01</span><span class="display">Méthode</span></a></li><li><a href="test-effort.html"><span class="mono">02</span><span class="display">Test d’effort</span></a></li><li><a href="index.html#coaching"><span class="mono">03</span><span class="display">Coaching</span></a></li><li><a href="index.html#stages"><span class="mono">04</span><span class="display">Stages</span></a></li><li><a href="index.html#coach"><span class="mono">05</span><span class="display">Le coach</span></a></li><li><a href="index.html#rdv"><span class="mono">06</span><span class="display">Premier échange</span></a></li></ol>
   <div class="mnav__meta">
-    <span class="mono">06 24 31 31 08 · deloge.guillaume@gmail.com</span>
+    <span class="mono"><a href="tel:+33624313108">06 24 31 31 08</a> · <a href="mailto:deloge.guillaume@gmail.com">deloge.guillaume@gmail.com</a></span>
     <span>Voiron, Isère · suivi à distance</span>
     <button class="calm-toggle" type="button" data-calm-toggle aria-pressed="false" style="justify-self:start"><span class="dot" aria-hidden="true"></span>Mode calme</button>
   </div>
@@ -60,7 +61,7 @@
 </aside>
 <div class="cursor" aria-hidden="true"><div class="cursor__ring"></div><div class="cursor__dot"></div><div class="cursor__label"></div></div>
 <div class="sweep" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></div>
-<main id="contenu">
+<main id="contenu" tabindex="-1">
   <section class="section" data-zone="1">
     <div class="wrap nf">
       <span class="eyebrow">Erreur 404</span>
@@ -84,8 +85,8 @@
       <div>
         <h2>Contact</h2>
         <ul>
-          <li class="mono" style="user-select:all">06 24 31 31 08</li>
-          <li class="mono" style="user-select:all;word-break:break-all">deloge.guillaume@gmail.com</li>
+          <li class="mono"><a href="tel:+33624313108">06 24 31 31 08</a></li>
+          <li class="mono" style="word-break:break-all"><a href="mailto:deloge.guillaume@gmail.com">deloge.guillaume@gmail.com</a></li>
           <li><a href="https://calendar.google.com/calendar/u/0/appointments/schedules/AcZssZ3g9Al6_7rFqDgDxq8xIlHyNEvZ44LqlH3CoWsQgGILkbGIf__lmKRDuOYDhqjKcB4P4H5pg5ft?gv=true" target="_blank" rel="noopener">Prendre rendez-vous</a></li>
         </ul>
       </div>
@@ -121,7 +122,7 @@
 <script src="assets/vendor/SplitText.min.js" defer></script>
 <script src="assets/vendor/Flip.min.js" defer></script>
 <script src="assets/vendor/lenis.min.js" defer></script>
-<script src="assets/js/app.js" defer></script>
+<script src="assets/js/app.js?v=2" defer></script>
 </body>
 </html>
 

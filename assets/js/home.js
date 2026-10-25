@@ -39,6 +39,7 @@
 
   /* ---------- Ouverture orchestrée ---------- */
   function intro(done) {
+    window.__etIntro = true;
     var el = $(".intro");
     if (!el || ET.calm || !G) { if (el) el.remove(); done(); return; }
     if (ET.sweepIn()) { el.remove(); done(); return; }
@@ -114,6 +115,7 @@
     var sec = $("#disciplines"), pin = $(".disc__pin", sec), track = $(".disc__track", sec), svg = $(".disc__line", sec), bar = $(".disc__progress b", sec);
     if (!sec || ET.calm) return;
     mm.add("(min-width: 901px)", function () {
+      sec.classList.add("is-h");
       track.style.position = "relative";
       track.appendChild(svg);
       var W = track.scrollWidth, H = 120;
@@ -139,7 +141,7 @@
       $$(".disc__t strong", sec).forEach(function (t) {
         gsap.from(t, { scale: 0.4, autoAlpha: 0, ease: "back.out(2)", scrollTrigger: { trigger: t, containerAnimation: tl, start: "left 75%", toggleActions: "play none none reverse" } });
       });
-      return function () { gsap.set(track, { x: 0 }); };
+      return function () { gsap.set(track, { x: 0 }); sec.classList.remove("is-h"); };
     });
   }
 
@@ -158,11 +160,11 @@
   /* ---------- Science : courbe de lactate interactive ---------- */
   var L = function (x) { return 0.9 + 0.333 * (Math.exp(3.24 * x) - 1); };
   var ZONES = [
-    { to: 0.45, z: 1, c: "#6fa8c9", t: "Endurance fondamentale, sous SL1 : le lactate reste proche du repos. C’est la zone où beaucoup d’athlètes courent trop vite." },
-    { to: 0.62, z: 2, c: "#b8ff3b", t: "Entre SL1 et le MLSS : endurance active, l’organisme recycle encore le lactate qu’il produit." },
-    { to: 0.72, z: 3, c: "#ffd25c", t: "Autour du MLSS : l’intensité la plus élevée que l’on peut tenir sans déséquilibre métabolique." },
-    { to: 0.87, z: 4, c: "#ff8a3d", t: "Au-delà de SL2 : le lactate s’accumule, l’effort devient limité dans le temps." },
-    { to: 1.01, z: 5, c: "#ff4b2b", t: "Intensités maximales, autour de la PMA ou de la VMA : efforts courts." }
+    { to: 0.45, z: 1, c: "#6fa8c9", t: "Endurance fondamentale, sous SL1 : le lactate reste proche du repos. C’est la zone où beaucoup d’athlètes courent trop vite." },
+    { to: 0.62, z: 2, c: "#b8ff3b", t: "Entre SL1 et le MLSS : endurance active, l’organisme recycle encore le lactate qu’il produit." },
+    { to: 0.72, z: 3, c: "#ffd25c", t: "Autour du MLSS : l’intensité la plus élevée que l’on peut tenir sans déséquilibre métabolique." },
+    { to: 0.87, z: 4, c: "#ff8a3d", t: "Au-delà de SL2 : le lactate s’accumule, l’effort devient limité dans le temps." },
+    { to: 1.01, z: 5, c: "#ff4b2b", t: "Intensités maximales, autour de la PMA ou de la VMA : efforts courts." }
   ];
   function chart() {
     var svg = $("#lacChart"); if (!svg) return;
@@ -266,7 +268,7 @@
       SESS.forEach(function (x) {
         var target = null;
         for (var i = 0; i < x.cells.length; i++) { var c = x.cells[i]; if (!blocked[c] && !used[c]) { target = c; break; } }
-        if (!target) { nodes[x.id].remove(); moves.push(x.label + " : reportée à la semaine suivante"); return; }
+        if (!target) { nodes[x.id].remove(); moves.push(x.label + " : reportée à la semaine suivante"); return; }
         used[target] = true;
         var tb = target.split("-");
         nodes[x.id].setAttribute("aria-label", x.label + ", " + DAYS_L[tb[0]] + " " + SLOTS_L[tb[1]]);
@@ -274,11 +276,11 @@
         if (first) base[x.id] = target;
         else if (base[x.id] !== target) {
           var a = base[x.id].split("-");
-          moves.push(x.label + " : " + DAYS_L[a[0]] + " " + SLOTS_L[a[1]] + " → " + DAYS_L[tb[0]] + " " + SLOTS_L[tb[1]]);
+          moves.push(x.label + " : " + DAYS_L[a[0]] + " " + SLOTS_L[a[1]] + " → " + DAYS_L[tb[0]] + " " + SLOTS_L[tb[1]]);
         }
       });
       if (state) Flip.from(state, { duration: 0.8, ease: "power3.inOut", stagger: 0.04, absolute: true, scale: true });
-      if (!first) log.textContent = moves.length ? moves.length + (moves.length > 1 ? " séances déplacées. " : " séance déplacée. ") + moves.join(" · ") : "Plan de départ : aucune séance à déplacer.";
+      if (!first) log.textContent = moves.length ? moves.length + (moves.length > 1 ? " séances déplacées. " : " séance déplacée. ") + moves.join(" · ") : "Plan de départ : aucune séance à déplacer.";
     }
     place(true);
     $$("[data-constraint]").forEach(function (b) {
@@ -356,7 +358,7 @@
         var known = typeof s.placesRestantes === "number";
         h += '<div class="gauge"><div class="gauge__bar' + (known ? "" : " is-unknown") + '" style="--n:' + s.places + '">';
         for (var i = 0; i < s.places; i++) h += "<i" + (known && i < s.places - s.placesRestantes ? ' class="on"' : "") + "></i>";
-        h += '</div><div class="gauge__lab"><span>Jauge · ' + s.places + " places</span><span>" + (s.past ? "Stage terminé" : known ? s.placesRestantes + " places restantes" : 'Places restantes : <span class="todo">à compléter</span>') + "</span></div></div>";
+        h += '</div><div class="gauge__lab"><span>Jauge · ' + s.places + " places</span><span>" + (s.past ? "Stage terminé" : known ? s.placesRestantes + " places restantes" : 'Places restantes : <span class="todo">à compléter</span>') + "</span></div></div>";
       }
       h += '<div class="stage__foot"><div class="stage__price">' + (s.past ? '<span class="todo">prochaines dates à compléter</span>' : price + (s.surMesure ? " <small>" : "<small>") + s.prixNote + "</small>") + "</div>";
       if (s.page) h += '<a class="link-arrow" href="' + s.page + '" data-cursor="Ouvrir">Voir le stage <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M4 12h15M13 6l6 6-6 6"/></svg></a>';
@@ -394,7 +396,6 @@
       nx.innerHTML = '<span class="next-stage__img"><img src="assets/img/' + next.image + "-" + w[0] + '.webp" alt=""></span><span class="next-stage__txt"><span>Prochain stage</span><strong>' + next.titre + "</strong><em>" + range(next) + " · " + next.lieu + "</em></span>" +
         '<span class="next-stage__price">' + eur(cur ? cur.prix : next.prix) + "<small>" + (cur && cur.jusqua ? "tarif " + cur.label.toLowerCase() + " · jusqu’au " + d0(cur.jusqua).toLocaleDateString("fr-FR", { day: "numeric", month: "short" }) : "par athlète") + "</small></span>";
       nx.hidden = false;
-      nx.setAttribute("aria-label", "Prochain stage : " + next.titre + ", " + range(next) + ", " + next.lieu);
     }
     show("avenir");
     var dlg = $("#stageSheet"), body = $("#sheetBody");
@@ -407,10 +408,11 @@
       h += '<div class="btn-row"><a class="btn" href="https://calendar.google.com/calendar/u/0/appointments/schedules/AcZssZ3g9Al6_7rFqDgDxq8xIlHyNEvZ44LqlH3CoWsQgGILkbGIf__lmKRDuOYDhqjKcB4P4H5pg5ft?gv=true" target="_blank" rel="noopener">Réserver un échange</a><a class="btn btn--ghost" href="' + s.lienSite + '" target="_blank" rel="noopener">Page actuelle du stage</a></div>';
       body.innerHTML = h;
       if (dlg.showModal) dlg.showModal(); else dlg.setAttribute("open", "");
+      document.documentElement.classList.add("verrou");
       if (ET.lenis) ET.lenis.stop();
     });
     dlg.addEventListener("click", function (e) { if (e.target === dlg || e.target.closest("[data-close]")) dlg.close(); });
-    dlg.addEventListener("close", function () { if (ET.lenis) ET.lenis.start(); });
+    dlg.addEventListener("close", function () { document.documentElement.classList.remove("verrou"); if (ET.lenis) ET.lenis.start(); });
   }
 
   /* ---------- Carte de la zone d'intervention ---------- */
@@ -492,13 +494,13 @@
       var b = e.target.closest("[data-s]"); if (!b || b.disabled) return;
       if (!selD) { out.textContent = "Choisissez d’abord un jour."; return; }
       $$("[data-s]", sEl).forEach(function (x) { x.setAttribute("aria-pressed", x === b ? "true" : "false"); });
-      out.innerHTML = "<strong>Démo</strong> : " + selD.toLocaleDateString("fr-FR", { weekday: "long", day: "numeric", month: "long" }) + " à " + b.getAttribute("data-s") + ". Rien n’est réservé ici : ouvrez le vrai agenda pour confirmer.";
+      out.innerHTML = "<strong>Démo</strong> : " + selD.toLocaleDateString("fr-FR", { weekday: "long", day: "numeric", month: "long" }) + " à " + b.getAttribute("data-s") + ". Rien n’est réservé ici : ouvrez le vrai agenda pour confirmer.";
     });
   }
 
   /* ---------- Lancement ---------- */
   ET.onReady(function () {
-    manifesto(); week(); chart(); stages(); map(); faq(); booking();
+    [manifesto, week, chart, stages, map, faq, booking].forEach(function (f) { try { f(); } catch (err) { console.error(err); } });
     intro(heroIn);
     disciplines(); principles(); splits();
     if (G) ScrollTrigger.refresh();
