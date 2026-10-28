@@ -134,7 +134,7 @@
       var wrap = $("#galWrap"), g = $("#gallery");
       wrap.classList.add("is-h");
       var dist = function () { return Math.max(0, g.scrollWidth - window.innerWidth); };
-      gsap.to(g, { x: function () { return -dist(); }, ease: "none", scrollTrigger: { trigger: wrap, start: "top top+=" + (ET.$(".header").offsetHeight + 20), end: function () { return "+=" + dist(); }, pin: true, scrub: 0.8, invalidateOnRefresh: true } });
+      gsap.to(g, { x: function () { return -dist(); }, ease: "none", scrollTrigger: { trigger: wrap, start: "top top", end: function () { return "+=" + dist(); }, pin: true, scrub: 0.8, invalidateOnRefresh: true } });
       return function () { gsap.set(g, { x: 0 }); wrap.classList.remove("is-h"); };
     });
   }

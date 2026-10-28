@@ -131,12 +131,12 @@
       var len = p.getTotalLength();
       gsap.set(p, { strokeDasharray: len, strokeDashoffset: len, opacity: 0.55 });
       var dist = function () { return track.scrollWidth - window.innerWidth; };
-      var tl = gsap.timeline({ scrollTrigger: { trigger: pin, start: "top top+=" + (ET.$(".header").offsetHeight + 10), end: function () { return "+=" + dist(); }, pin: true, scrub: 0.8, invalidateOnRefresh: true, anticipatePin: 1 } });
+      var tl = gsap.timeline({ scrollTrigger: { trigger: pin, start: "top top", end: function () { return "+=" + dist(); }, pin: true, scrub: 0.8, invalidateOnRefresh: true } });
       tl.to(track, { x: function () { return -dist(); }, ease: "none" }, 0)
         .to(p, { strokeDashoffset: 0, ease: "none" }, 0)
         .to(bar, { scaleX: 1, ease: "none" }, 0);
       $$(".disc__media .media--inset", sec).forEach(function (m, i) {
-        tl.fromTo(m, { yPercent: 30 }, { yPercent: -20, ease: "none" }, 0);
+        tl.fromTo(m, { yPercent: 0 }, { yPercent: -50, ease: "none" }, 0);   /* l'encart reste dans le panneau (épinglé en 100svh) */
       });
       $$(".disc__t strong", sec).forEach(function (t) {
         gsap.from(t, { scale: 0.4, autoAlpha: 0, ease: "back.out(2)", scrollTrigger: { trigger: t, containerAnimation: tl, start: "left 75%", toggleActions: "play none none reverse" } });

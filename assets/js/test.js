@@ -28,12 +28,15 @@
   function protocol() {
     var svg = $("#protoChart"), list = $("#protoSteps"); if (!svg) return;
     var pts, rows, photos = $$("#protoPhotos .media"), curve, len = 1, cur = 0;
-    list.innerHTML = '<div class="proto__step" style="color:var(--paper-faint)"><span>Palier</span><span>Vitesse</span><span>Lactate</span></div>' +
-      P.map(function (p, i) { return '<div class="proto__step' + (KEY[i] ? " is-key" : "") + '" data-i="' + i + '"><span>' + (i + 1) + (KEY[i] ? " · " + KEY[i] : "") + "</span><span>" + p.v + " km/h</span><span>" + p.l.toFixed(1).replace(".", ",") + "</span></div>"; }).join("");
+    var head = function (c) { return '<div class="proto__step' + c + '" style="color:var(--paper-faint)"' + (c ? ' aria-hidden="true"' : "") + "><span>Palier</span><span>Vitesse</span><span>Lactate</span></div>"; };
+    var row = function (p, i) { return '<div class="proto__step' + (KEY[i] ? " is-key" : "") + '" data-i="' + i + '"><span>' + (i + 1) + (KEY[i] ? " · " + KEY[i] : "") + "</span><span>" + p.v + " km/h</span><span>" + p.l.toFixed(1).replace(".", ",") + "</span></div>"; };
+    /* deux colonnes de paliers quand le protocole est épinglé : la 2e ligne d'en-tête n'apparaît qu'alors */
+    list.innerHTML = head("") + P.slice(0, 4).map(row).join("") + head(" proto__step--h2") + P.slice(4).map(function (p, i) { return row(p, i + 4); }).join("");
     rows = $$(".proto__step[data-i]", list);
     function draw() {
       var W = Math.max(280, Math.round(svg.parentElement.clientWidth - 2)), narrow = W < 520;
-      var H = Math.round(W * (narrow ? 0.7 : 0.52)), l = narrow ? 32 : 48, r = 14, t = 20, b = 42;
+      var pinned = svg.closest(".is-pin");   /* épinglé : le graphique prend la hauteur qui reste */
+      var H = pinned ? Math.max(160, Math.round(svg.getBoundingClientRect().height)) : Math.round(W * (narrow ? 0.7 : 0.52)), l = narrow ? 32 : 48, r = 14, t = 20, b = 42;
       svg.setAttribute("viewBox", "0 0 " + W + " " + H);
       var X = function (v) { return l + (v - 9.5) / 8 * (W - l - r); }, Y = function (v) { return H - b - v / 8 * (H - t - b); };
       var s = "";
@@ -63,13 +66,17 @@
       curve.style.strokeDasharray = len; curve.style.strokeDashoffset = len * (1 - k / (P.length - 1));
     }
     draw();
-    var lastW = svg.parentElement.clientWidth, rt;
-    window.addEventListener("resize", function () { clearTimeout(rt); rt = setTimeout(function () { if (Math.abs(svg.parentElement.clientWidth - lastW) > 20) { lastW = svg.parentElement.clientWidth; draw(); } }, 150); });
+    var lastW = svg.parentElement.clientWidth, lastH = window.innerHeight, rt;
+    window.addEventListener("resize", function () { clearTimeout(rt); rt = setTimeout(function () { if (Math.abs(svg.parentElement.clientWidth - lastW) > 20 || (svg.closest(".is-pin") && Math.abs(window.innerHeight - lastH) > 20)) { lastW = svg.parentElement.clientWidth; lastH = window.innerHeight; draw(); } }, 150); });
     if (!G || ET.calm) { setStep(P.length - 1); return; }
     setStep(0);
     var onUp = function (st) { setStep(Math.min(P.length - 1, Math.floor(st.progress * P.length))); };
     mm.add("(min-width: 961px)", function () {
-      ScrollTrigger.create({ trigger: "#proto", start: "top top+=" + (ET.$(".header").offsetHeight + 20), end: "+=1600", pin: true, scrub: true, onUpdate: onUp });
+      var proto = $("#proto");
+      proto.classList.add("is-pin");   /* 100svh sous l'en-tête mesuré : graphique, tableau et photos tiennent dans l'écran */
+      draw();
+      ScrollTrigger.create({ trigger: proto, start: "top top", end: "+=1600", pin: true, scrub: true, onUpdate: onUp });
+      return function () { proto.classList.remove("is-pin"); };
     });
     mm.add("(max-width: 960px)", function () {
       ScrollTrigger.create({ trigger: "#proto", start: "top 70%", end: "bottom 40%", scrub: true, onUpdate: onUp });

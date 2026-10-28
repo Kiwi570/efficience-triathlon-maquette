@@ -87,6 +87,44 @@
   if (ET.lenis) ET.lenis.on("scroll", onScrollHeader); else window.addEventListener("scroll", onScrollHeader, { passive: true });
   onScrollHeader();
 
+  /* ---------- Hauteurs réelles de l'en-tête et de la barre du bas (sections épinglées) ---------- */
+  var bar = ET.$(".actionbar");
+  var noBar = document.body.getAttribute("data-page") === "introuvable";
+  function measureBars() {
+    html.style.setProperty("--entete-h", (header ? header.offsetHeight : 0) + "px");
+    html.style.setProperty("--barres-h", (bar && !noBar ? bar.offsetHeight : 0) + "px");
+  }
+  measureBars();
+  if ("ResizeObserver" in window) {
+    var ro = new ResizeObserver(measureBars);
+    if (header) ro.observe(header);
+    if (bar) ro.observe(bar);
+  } else window.addEventListener("resize", measureBars);
+
+  /* ---------- Barre du bas : seulement après le héros, jamais sur un formulaire, le rendez-vous ou le pied ---------- */
+  if (bar) {
+    if (noBar) bar.hidden = true;
+    else if ("IntersectionObserver" in window) {
+      html.classList.add("bar-auto");   /* sans JS, la barre reste visible */
+      var top = ET.$(".hero, .phero") || ET.$("main h1");
+      var hides = ET.$$("form, #rdv, .footer");
+      var seen = new Map();
+      var setBar = function () {
+        var on = !seen.get(top);
+        hides.forEach(function (h) { if (seen.get(h)) on = false; });
+        bar.classList.toggle("is-on", on);
+        bar.inert = !on || document.body.classList.contains("menu-open");
+      };
+      var io = new IntersectionObserver(function (en) {
+        en.forEach(function (x) { seen.set(x.target, x.isIntersecting); });
+        setBar();
+      });
+      if (top) { seen.set(top, true); io.observe(top); }
+      hides.forEach(function (h) { io.observe(h); });
+      setBar();
+    } else bar.classList.add("is-on");
+  }
+
   /* ---------- Menu mobile ---------- */
   var menuBtn = ET.$(".menu-btn");
   function closeMenu() {
